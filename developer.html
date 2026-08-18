@@ -1,0 +1,1384 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Water Tank Static Pressure Zones</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+
+    <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            font-weight: normal;
+            font-style: normal;
+        }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; }
+
+        #ui-panel {
+            position: absolute; top: 15px; left: 15px;
+            z-index: 1000;
+            max-height: 90vh;
+            overflow-y: auto;
+            background: rgba(255, 255, 255, 0.95); padding: 20px;
+            border-radius: 8px; font-family: Arial, sans-serif;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            color: #333;
+        }
+
+        #disclaimer-box {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+
+            background: rgba(170, 12, 12, 0.6); padding: 10px 25px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border-radius: 8px;
+
+            font-family: system-ui, -apple-system, sans-serif; /*letter-spacing: 1px;*/
+            color: #ffffff;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+        }
+
+        #disclaimer-box h3 {
+            margin: 0 0 0px 0;
+            font-size: 16px;
+            letter-spacing: 1px;
+            line-height: 1.5;
+            text-transform: uppercase;
+        }
+
+        #disclaimer-box p {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.5;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* There are three utility classes to determine all text for the site */
+        .text-title {
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
+        .text-description  {
+            font-size: 13px;
+            color: #444444;
+            line-height: 1.5;
+            margin: 0;
+            max-width: 300px;
+        }
+
+        .text-bubble {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: #7f8c8d;
+            color: white;
+            font-size: 12px;
+            font-style: normal; /* Overrides italics if placed inside an italicized parent */
+            cursor: help;
+            vertical-align: middle;
+            margin-left: 8px;
+            position: relative;
+        }
+
+        .legend-item { margin-top: 8px; font-size: 13px; font-weight: bold; }
+
+        .legend-box {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            margin-right: 8px;
+            vertical-align: top;
+            border-radius: 2px;
+        }
+        /* This part sets the bounds for the text boxes through the identifying keys
+         layer-control and layer-description. */
+        /*Gives each checkbox block a little breathing room */
+        .layer-control {
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            vertical-align: middle;
+            /*margin-bottom: 16px;*/
+        }
+        /* Change icon color slightly when hovered */
+        .text-bubble:hover {
+            background-color: #e74c3c;
+        }
+        /* This keeps the code for the tank elevation the same. */
+        .tank-elevation-description {
+            font-size: 13px; /* Keeps the text small and unobtrusive */
+            color: #666666;
+            margin-top: 4px; /* A tiny gap between the label and the description */
+            margin-left: 24px; /* IMPORTANT: This perfectly indents the text so it sits under the label, not under the checkbox square! */
+            line-height: 1.5;
+        }
+
+        /* Styles the hidden info box */
+        .layer-description {
+            visibility: hidden;
+            opacity: 0;
+            width: 200px;
+            background-color: #faf7e7;
+            color: #666666;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10;
+
+            /* position the tooltip above the icon */
+            bottom: 150%;
+            left: 50%;
+            margin-left: -135px;
+
+            /* Smooth the fade-in effect */
+            transition: opacity 0.3s, visibility 0.3s;
+
+            /* text styling */
+            font-size: 12px; /* Keeps the text small and unobtrusive */
+            font-style: italic;
+            margin-top: 4px; /* A tiny gap between the label and the description */
+            line-height: 1.4; /* Makes multi-line descriptions easier to read */
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .layer-description:after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #333333 transparent transparent transparent;
+        }
+
+        .text-bubble:hover .layer-description {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Optional: Make the label text bold so it stands out from the description */
+        .layer-control label {
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+
+    </style>
+</head>
+    <body>
+
+    <div id="ui-panel">
+        <h3 class="text-title" style="margin-top: 0;">Hydrostatic WUI Risk Modeler</h3>
+
+        <p class="text-description" style="margin-bottom: 15px;">
+            1. Choose water-level height, <br>2. Place a water tank, <br>3. Wait for water pressure grid to display.
+        </p>
+
+        <label class="text-title">Water Level in Tank (ft):</label>
+        <input type="number" id="tank-height" value="20" style="width: 40px; margin-bottom: 4px;">
+
+        <!--This shows the elevation of the user click. Tank elevation-->
+        <div class="tank-elevation-description" style="margin-top: 8px;">
+            <strong class="text-description">Tank Location Elevation:</strong>
+            <span id="elevation-display" class="text-description" style="color: #e74c3c; font-weight: bold;">Click to place water tank...</span>
+            <br>
+            <button id="reset-tank-btn" style="display: none; background-color: #3b7326; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; margin-top: 8px;">Reset Tank Location</button>
+        </div>
+        <!-- End of section -->
+
+        <!-- Here is the part for the user interface box. Warning, and Danger Threshold PSI user input boxes -->
+        <div style="margin-top: 8px;">
+            <label class="legend-item" for="low-psi">Bottom Threshold (PSI):</label>
+            <input type="number" id="low-psi" value="30" style="width: 40px; margin-bottom: 10px;" step="5">
+        </div>
+
+        <div class="input-group">
+            <label class="legend-item" for="danger-psi">Top Threshold (PSI):</label>
+            <input type="number" id="danger-psi" value="80" style="width: 40px; margin-bottom: 10px;" step="5">
+        </div>
+        <!-- End of section -->
+
+        <!-- This block creates the color filters for the pressure grid-->
+        <div class="legend-item">
+            <span class="legend-box" style="background-color: #e74c3c;"></span>
+            Low Pressure (< <span id="legend-low-1">30</span> psi)
+        </div>
+        <div class="legend-item">
+            <span class="legend-box" style="background-color: #f4ce3b;"></span>
+            Optimal Pressure (<span id="legend-low-2">30</span> - <span id="legend-danger-1">80</span> psi)
+        </div>
+
+        <div class="legend-item">
+            <span class="legend-box" style="background-color: #C26FF4;"></span>
+            High Pressure (&gt; <span id="legend-danger-2">80</span> psi)
+        </div>
+        <!-- End of pressure grid color filters-->
+
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+
+        <h3 id="map-controls-header" class="text-title" style="cursor: pointer; margin-top: 10px; margin-bottom: 10px; user-select: none;">
+            <span id="map-controls-arrow" style="display: inline-block; width: 15px;">▶</span>Map Controls
+        </h3>
+
+        <!-- This is the block for the checkboxes to turn the layers on and off -->
+        <div id="map-controls-content" class="layer-control" style="display: none;">
+
+            <div style="margin-bottom: 15px; margin-top: 5px;">
+                <label for="opacity-slider" class="text-description" style="font-weight: bold;">
+                    Satellite Image Opacity: <span id="opacity-value" style="color: #2980b9;">100%</span>
+                </label>
+                <input type="range" id="opacity-slider" min="0" max="100" value="100" style="width: 100%; margin-top: 8px; cursor: pointer;">
+            </div>
+
+            <!-- check box 1 -->
+            <input type="checkbox" id="toggle-pressure" checked>
+            <label for="toggle-pressure">Water Pressure Grid</label>
+            <div class="text-bubble">i
+                <div class="layer-description" style="font-style: italic;">
+                    This calculates the available hydrostatic PSI. This is based on the topographic elevation drop.
+                </div>
+            </div>
+
+            <!-- check box 2 -->
+            <br><input type="checkbox" id="toggle-fema-fill" checked>
+            <label for="toggle-fema-fill" class="text-description" style="font-weight: bold;">FEMA WUI Ember Zones</label>
+            <div class="text-bubble">i
+                <div class="layer-description">
+                    Federal Emergency Management Agency (FEMA)<br>The Ember Zone is where the burning ashes of the wildfire can cause houses to burn.<br>It extends 1.48mi from the Ignition zone.
+                </div>
+            </div>
+
+            <!-- check box 3 -->
+            <br><input type="checkbox" id="toggle-fema-border" checked>
+            <label for="toggle-fema-border" class="text-description" style="font-weight: bold;">FEMA Ignition Zone</label>
+            <div class="text-bubble">i
+                <div class="layer-description">
+                    Federal Emergency Management Agency (FEMA)<br>This is the WUI 100ft boundary interface.
+                </div>
+            </div>
+
+            <!-- check box 4 -->
+            <br><input type="checkbox" id="wui-risk-data" checked>
+            <label for="wui-risk-data">DNR WUI Zones</label>
+            <div class="text-bubble">i
+                <div class="layer-description" style="font-style: italic;">
+                    The Department of Natural Resources (DNR)<br>This shows the current wildland urban interface (WUI).
+                </div>
+            </div>
+
+            <!-- check box 5 -->
+            <br><input type="checkbox" id="parcel-map-of-utah" checked>
+            <label for="parcel-map-of-utah">URGC Utah Parcel Map</label>
+            <div class="text-bubble">i
+                <div class="layer-description" style="font-style: italic;">
+                    Utah Geospatial Resource Center (URGC)<br>This shows the current parcel map for Utah when the user is at a ScaleControl >= 15.
+                </div>
+            </div>
+
+            <br><input type="checkbox" id="toggle-cursor-box" checked>
+            <label for="toggle-cursor-box">Mouse Info Box</label>
+            <div class="text-bubble">i
+                <div class="layer-description" style="font-style: italic;">
+                    This will turn on and off the white info box when you hover over the pressure grid.
+                </div>
+            </div>
+        </div>
+        <!-- end of checkbox block -->
+        <!-- start of PDF button -->
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+        <button id="pdf-btn" style="display: block; width: 50%; margin: 0 auto; background-color: #1767cf; color: white; border: none; border-radius: 6px; padding: 10px; font-size: 14px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            🖨️ Save Data
+        </button>
+
+    </div>
+
+    <div id="disclaimer-box">
+        <h3>- Disclaimer -</h3>
+        <p>
+            This tool calculates maximum theoretical static head.
+        </p>
+    </div>
+
+    <div id="map"></div>
+
+        <script>
+
+            const map = new maplibregl.Map({
+                container: 'map',
+                preserveDrawingBuffer: true,
+                center: [-111.6585, 40.2338],
+                zoom: 6.5,
+                pitch: 0,
+                hash: true,
+                style: {
+                    version: 8,
+                    glyphs: "https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf",
+                    sources: {
+                        'esri-topo': {
+                            type: 'raster',
+                            tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}'],
+                            tileSize: 256,
+                            attribution: 'Esri, USGS, NOAA',
+                            maxzoom: 16
+                        },
+                        'esri-world-imagery': {
+                            type: 'raster',
+                            tiles: [
+                                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+                            ],
+                            tileSize: 256,
+                            attribution: 'Esri, Maxar, Earthstar Geographics',
+                            maxzoom: 16
+                        },
+                        'esri-street-names': {
+                            type: 'raster',
+                            tiles: ['https://server.arcgisonline.com/arcgis/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'],
+                            tileSize: 256,
+                            maxzoom: 24
+                        },
+                        'esri-places-names': {
+                            type: 'raster',
+                            tiles: ['https://server.arcgisonline.com/arcgis/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}'],
+                            tileSize: 256,
+                            maxzoom: 24
+                        },
+                        'aws-terrain': {
+                            type: 'raster-dem',
+                            tiles: [
+                                'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png'
+                            ],
+                            encoding:'terrarium',
+                            tileSize: 256,
+                            attribution: 'AWS Open Data',
+                            maxzoom:15
+                        },
+                        'dnr-wui-risk-data': {
+                            data:'https://services.arcgis.com/ZzrwjTRez6FJiOq4/arcgis/rest/services/Utah_High_Risk_WUI_Properties/FeatureServer/1/query?where=1=1&outFields=*&f=geojson',
+                            type: 'geojson'
+                        },
+                        'fema-wildlands-data':{
+                            type: 'vector',
+                            tiles: [
+                                'https://tiles.arcgis.com/tiles/XG15cJAlne2vxtgt/arcgis/rest/services/wildlands_20250616/VectorTileServer/tile/{z}/{y}/{x}.pbf'
+                            ],
+                        },
+                        'utah-parcel-map': {
+                            type: 'geojson',
+                            data: { type: 'FeatureCollection', features: []}
+                        }
+                    },
+                    layers: [
+                        {
+                            id: 'esri-topo-layer',
+                            type: 'raster',
+                            source: 'esri-topo',
+                            minZoom: 0
+                        },
+                        {
+                            id: 'esri-world-imagery-layer',
+                            type: 'raster',
+                            source: 'esri-world-imagery',
+                            minZoom: 0
+                        },
+                        {
+                            id: 'street-names',
+                            type: 'raster',
+                            source: 'esri-street-names',
+                            minZoom: 0
+                        },
+                        {
+                            id: 'places-names',
+                            type: 'raster',
+                            source: 'esri-places-names',
+                            minZoom: 0
+                        }
+                    ],
+                    terrain: {
+                        source: 'aws-terrain',
+                        exaggeration: 1.0
+                    },
+                    sky: {
+                        "sky-color": '#0057cc',
+                        "horizon-color": "#ffffff",
+                        "fog-color": "#a2fdfd",
+                        "sky-horizon-blend": 0.7,
+                    },
+                },
+                maxZoom: 18,
+                maxPitch: 80
+            });
+
+            map.addControl(
+                new maplibregl.NavigationControl({
+                    visualizePitch: true,
+                    showZoom: true,
+                })
+            );
+
+            map.addControl(
+                new maplibregl.TerrainControl({
+                    source: 'aws-terrain',
+                    exaggeration: 1.0
+                })
+            );
+
+            let tankMarker = null;
+            let currentCalculationId = 0;
+            let isTankLocked = false;
+
+            function updateGridColors() {
+                if (!map.getLayer('pressure-layer')) return;
+
+                // Grab the custom numbers the user just typed in
+                const lowLimit = parseFloat(document.getElementById('low-psi').value);
+                const dangerLimit = parseFloat(document.getElementById('danger-psi').value);
+
+                document.getElementById('legend-low-1').innerText = lowLimit;
+                document.getElementById('legend-low-2').innerText = lowLimit;
+                document.getElementById('legend-danger-1').innerText = dangerLimit;
+                document.getElementById('legend-danger-2').innerText = dangerLimit;
+
+                if (!window.currentElevationData || !window.gridBounds) return;
+
+                const bounds = window.gridBounds;
+                const elevationData = window.currentElevationData;
+
+                // create a fresh canvas to redraw the pixels
+                const canvas = document.createElement('canvas');
+                canvas.width = bounds.imgWidth;
+                canvas.height = bounds.imgHeight;
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.createImageData(bounds.imgWidth, bounds.imgHeight);
+                const data = imageData.data;
+
+                for (let i = 0; i < elevationData.length; i++) {
+                    const cellElevMeters = elevationData[i];
+                    const pixelIndex = i * 4;
+
+                    if (cellElevMeters !== undefined && cellElevMeters > -1000) {
+                        const cellElevFeet = cellElevMeters * 3.28084;
+                        const headDifference = bounds.totalWaterHeadFeet - cellElevFeet;
+                        const psi = headDifference * 0.433;
+
+                        if (psi <= 0.1) {
+                            data[pixelIndex + 3] = 0;
+                        } else if (psi < lowLimit) {
+                            // clumsy way of saying rbga for red
+                            data[pixelIndex] = 255;
+                            data[pixelIndex + 1] = 0;
+                            data[pixelIndex + 2] = 0;
+                            data[pixelIndex + 3] = 153;
+                        } else if (psi < dangerLimit) {
+                            // for the color yellow
+                            data[pixelIndex] = 244;
+                            data[pixelIndex + 1] = 206;
+                            data[pixelIndex + 2] = 59;
+                            data[pixelIndex + 3] = 127;
+                        } else {
+                            // purple
+                            data[pixelIndex] = 194;
+                            data[pixelIndex + 1] = 111;
+                            data[pixelIndex + 2] = 246;
+                            data[pixelIndex + 3] = 102;
+                        }
+                    }
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+
+                // send recolored image to map
+                if (map.getSource('pressure-image-source')) {
+                    map.getSource('pressure-image-source').updateImage({
+                        url: canvas.toDataURL('image/png'),
+                        coordinates: [
+                            [bounds.minLng, bounds.maxLat],
+                            [bounds.maxLng, bounds.maxLat],
+                            [bounds.maxLng, bounds.minLat],
+                            [bounds.minLng, bounds.minLat]
+                        ]
+                    });
+                }
+            }
+
+            // Add these so the map updates when the user changes the PSI numbers
+            document.getElementById('low-psi').addEventListener('input', updateGridColors);
+            document.getElementById('danger-psi').addEventListener('input', updateGridColors);
+
+            async function fetchWithRetry(url, options = {}, retries = 3, delay = 1000) {
+                for (let i = 0; i < retries; i++) {
+                    try {
+                        const response = await fetch(url, options);
+                        if (response.ok) return response;
+                        if (response.status >= 500 && i < retries - 1) {
+                            console.warn(`USGS Server Busy (${response.status}. Retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+                            await new Promise(res => setTimeout(res, delay));
+                            delay *= 2;
+                            continue;
+                        }
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    } catch (error) {
+                        if (i === retries - 1) throw error;
+                        console.warn(`Network hiccup (${error.message}. Retrying in ${delay}ms...`);
+                        await new Promise(res => setTimeout(res, delay));
+                        delay *= 2;
+                    }
+                }
+            }
+
+
+            map.on('load', () => {
+
+                map.addSource('pressure-image-source', {
+                    type: 'image',
+                    url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                    coordinates: [
+                        [-111, 40],
+                        [-110, 40],
+                        [-110, 39],
+                        [-111, 39]
+                    ]
+                });
+
+                map.addLayer({
+                    id: 'pressure-layer',
+                    type: 'raster',
+                    source: 'pressure-image-source',
+                    paint: {
+                        'raster-fade-duration': 0,
+                        'raster-resampling': 'nearest'
+                    }
+                });
+
+
+                // the description of how the DNR WUI layer looks like
+                map.addLayer({
+                    id: 'wui-fill',
+                    type: 'fill',
+                    source: 'dnr-wui-risk-data',
+                    paint: {
+                        'fill-color': '#ff4444',
+                        'fill-opacity': 0.15
+                    }
+                });
+
+                // the rules that define the DNR WUI layer outline
+                map.addLayer({
+                    id: 'wui-outline',
+                    type: 'line',
+                    source: 'dnr-wui-risk-data',
+                    paint: {
+                        'line-color': '#ff0000',
+                        'line-width': 2,
+                        'line-dasharray': [2, 2]
+                    }
+                });
+
+                // this colors the FEMA WUI wildlands data layer
+                 map.addLayer({
+                    id: 'fema-wildlands-fill',
+                    type: 'fill',
+                    source: "fema-wildlands-data",
+                    'source-layer': 'Ember zone', // source-layer name = wildlands_20250616
+                    paint: {
+                        'fill-color': '#bd8409', // Base red color
+                        'fill-opacity': 0.30, // Semi-transparent so the terrain shows through
+                        'fill-outline-color': '#000000' // Darker red for the borders
+                    }
+                }, 'pressure-layer'); // <--- This forces FEMA to sit underneath pressure-layer
+
+
+                // This adds a border to the FEMA WUI wildlands data layer
+                map.addLayer({
+                    id: 'fema-wildlands-border-fill',
+                    type: 'fill',
+                    source: 'fema-wildlands-data',
+                    'source-layer': 'Ignition zone',
+                    paint: {
+                        'fill-color': '#fa0202',
+                        'fill-opacity': 0.9,
+                    }
+                }, 'pressure-layer');
+
+                map.addLayer({
+                    id: 'parcel-map-of-utah',
+                    type: 'line',
+                    source: 'utah-parcel-map',
+                    paint: {
+                        'line-color': '#ffffff',
+                        'line-width': 1,
+                        'line-opacity': 0.9
+                    }
+                });
+
+                map.addLayer({
+                    id: 'parcel-fill',
+                    type: 'fill',
+                    source: 'utah-parcel-map',
+                    paint: {
+                        'fill-color': '#000000',
+                        'fill-opacity': 0.01
+                    }
+                });
+
+                let parcelAbortController = null;
+                let throttleTimer = null;
+
+                function fetchParcels() {
+                    const zoomLevel = map.getZoom();
+
+                    if (zoomLevel >= 14) {
+                        const bounds = map.getBounds();
+
+                        const lngDiff = bounds.getEast() - bounds.getWest();
+                        const latDiff = bounds.getNorth() - bounds.getSouth();
+
+                        const west = bounds.getWest() - (lngDiff * 0.2);
+                        const east = bounds.getEast() + (lngDiff * 0.2);
+                        const north = bounds.getNorth() + (latDiff * 0.2);
+                        const south = bounds.getSouth() - (latDiff *0.2);
+
+                        const bboxString = `${west}, ${south}, ${east}, ${north}`;
+                        const parcelUrl = `https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/UtahStatewideParcels/FeatureServer/0/query?f=geojson&geometry=${bboxString}&geometryType=esriGeometryEnvelope&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=OBJECTID,PARCEL_ID`;
+
+                        if (parcelAbortController) {
+                            parcelAbortController.abort();
+                        }
+                        parcelAbortController = new AbortController();
+                        fetch(parcelUrl, { signal: parcelAbortController.signal})
+                            .then(response => response.json())
+                            .then(data => {
+                                if (map.getSource('utah-parcel-map')) {
+                                    map.getSource('utah-parcel-map').setData(data);
+                                }
+                            })
+                            .catch(error => {
+                                if (error.name !== 'AbortError') {
+                                    console.error('Error fetching parcels:', error);
+                                }
+                            });
+                    } else {
+                        if (map.getSource('utah-parcel-map')) {
+                            map.getSource('utah-parcel-map').setData({ type:'FeatureCollection', features: []});
+                        }
+                    }
+                }
+
+                map.on('move', () => {
+                    if (!throttleTimer) {
+                        throttleTimer = setTimeout(() => {
+                            fetchParcels();
+                            throttleTimer = null;
+                        }, 400);
+                    }
+                });
+
+                fetchParcels();
+            });
+            /* ^ ^ ^
+               | | | = end of map load block */
+
+            async function calculatePressureGrid(coords, tankElevFeet, qualityLabel) {
+                const tankStructureHeight = parseFloat(document.getElementById('tank-height').value);
+                const totalWaterHeadFeet = tankElevFeet + tankStructureHeight;
+
+                const radius = 1; // 3.2 km = 2 mi, 2km = 1 1/4mi, 9.6km = 6mi
+                const boundingBox = turf.bbox(turf.circle(coords, radius, { units: 'kilometers' }));
+
+                document.getElementById('elevation-display').innerText = 'Downloading 3DEP Raster...';
+                document.getElementById('elevation-display').style.color = '#239801';
+
+                try {
+                    const minLng = boundingBox[0];
+                    const minLat = boundingBox[1];
+                    const maxLng = boundingBox[2];
+                    const maxLat = boundingBox[3];
+
+                    const imgWidth = 1600;
+                    const imgHeight = 1600;
+
+                    const mosaicRuleJson = encodeURIComponent(JSON.stringify({
+                        "mosaicMethod": "esriMosaicAttribute",
+                        "sortField": "LowPS",
+                        "sortValue": 0,
+                        "ascending": true,
+                        "mosaicOperation": "MT_FIRST"
+                    }));
+
+                    const url = `https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=${minLng},${minLat},${maxLng},${maxLat}&bboxSR=4326&size=${imgWidth},${imgHeight}&imageSR=3857&format=tiff&pixelType=F32&mosaicRule=${mosaicRuleJson}&f=image&_ts=${Date.now()}`;
+
+                    const response = await fetchWithRetry(url, { mode: 'cors'}, 3, 1000);
+                    if (!response.ok) throw new Error("Failed to fetch USGS 3DEP Raster");
+
+                    const arrayBuffer = await response.arrayBuffer();
+
+                    const tiff = await GeoTIFF.fromArrayBuffer(arrayBuffer);
+                    const image = await tiff.getImage();
+                    const rasters = await image.readRasters();
+                    const elevationData = rasters[0];
+
+                    const lowLimit = parseFloat(document.getElementById('low-psi').value);
+                    const dangerLimit = parseInt(document.getElementById('danger-psi').value);
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = imgWidth;
+                    canvas.height = imgHeight;
+                    const ctx = canvas.getContext('2d');
+                    const imageData = ctx.createImageData(imgWidth, imgHeight);
+                    const data = imageData.data;
+
+                    for(let i = 0; i < elevationData.length; i++) {
+                        const cellElevMeters = elevationData[i];
+                        const pixelIndex = i * 4;
+
+                        if (cellElevMeters !== undefined && cellElevMeters > -1000) {
+                            const cellElevFeet = cellElevMeters * 3.28084;
+
+                            if (cellElevMeters !== undefined && cellElevMeters > -1000) {
+                                const headDifference = totalWaterHeadFeet - cellElevFeet;
+                                const psi = headDifference * 0.433;
+
+                                if (psi <= 0.1) {
+                                    data[pixelIndex + 3] = 0;
+                                } else if (psi < lowLimit) {
+                                    // Red: rgba(255, 0, 0, 0.6)
+                                    data[pixelIndex] = 255;
+                                    data[pixelIndex + 1] = 0;
+                                    data[pixelIndex + 2] = 0;
+                                    data[pixelIndex + 3] = 153;
+                                } else if (psi < dangerLimit) {
+                                    // Yellow: rgba(244, 206, 59, 0.5)
+                                    data[pixelIndex] = 244;
+                                    data[pixelIndex + 1] = 206;
+                                    data[pixelIndex + 2] = 59;
+                                    data[pixelIndex + 3] = 127;
+                                } else {
+                                    // Purple: rgba(194, 111, 246, 0.4)
+                                    data[pixelIndex] = 194;
+                                    data[pixelIndex + 1] = 111;
+                                    data[pixelIndex + 2] = 246;
+                                    data[pixelIndex + 3] = 102;
+                                }
+                            }
+                        }
+                    }
+
+                    ctx.putImageData(imageData, 0, 0);
+
+                    map.getSource('pressure-image-source').updateImage({
+                        url: canvas.toDataURL('image/png'),
+                        coordinates: [
+                            [minLng, maxLat],
+                            [maxLng, maxLat],
+                            [maxLng, minLat],
+                            [minLng, minLat]
+                        ]
+                    });
+
+                    window.currentElevationData = elevationData;
+                    window.gridBounds = { minLng, maxLat, maxLng, minLat, imgWidth, imgHeight, totalWaterHeadFeet };
+
+
+                    const roundedElev = Math.round(tankElevFeet * 10) / 10;
+                    document.getElementById('elevation-display').innerHTML = `${roundedElev} ft<br><span style="font-size: 11px; color: #666666;">Quality: ${qualityLabel}</span>`;
+                    document.getElementById('elevation-display').style.color = '#333333';
+
+                } catch (error) {
+                    console.error(error);
+                    document.getElementById('elevation-display').innerText = 'USGS Error - Please try again';
+                    document.getElementById('elevation-display').style.color = '#e74c3c';
+                }
+            }
+
+            // This is what grabs the exact point elevation from USGS for the water tank
+            async function getUSGSElevation(lng, lat) {
+
+                const geometryJson = encodeURIComponent(JSON.stringify({
+                    x: lng,
+                    y: lat,
+                    spatialReference: { wkid: 4326 }
+                }));
+
+                const mosaicRuleJson = encodeURIComponent(JSON.stringify({
+                    "mosaicMethod": "esriMosaicAttribute",
+                    "sortField": "LowPS",
+                    "sortValue": 0,
+                    "ascending": true,
+                    "mosaicOperation": "MT_FIRST"
+                }));
+
+                const url = `https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/identify?geometryType=esriGeometryPoint&geometry=${geometryJson}&mosaicRule=${mosaicRuleJson}&returnGeometry=false&returnCatalogItems=true&f=json`;
+
+                try {
+                    const response = await fetchWithRetry(url, { mode: 'cors'}, 2, 500);
+                    if (!response.ok) throw new Error("USGS API unreachable");
+
+                    const data = await response.json();
+                    const elevation = data.value;
+
+
+
+                    if (elevation && elevation !== 'NoData' && elevation !== '-1000000' && !isNaN(parseFloat(elevation))) {
+
+                        const attributes = data.catalogItems?.features?.[0]?.attributes || {};
+
+                        const rawRes = attributes.Resolution_Y || attributes.LowPS;
+                        const res = rawRes !== undefined ? parseFloat(rawRes) : null;
+
+                        let qualityLabel = attributes.ProductName || attributes.title || "USGS 3DEP";
+
+                        if (res !== null && !isNaN(res)) {
+
+                            if (res <= 0.6) {
+                                qualityLabel = "USGS Q1 (0.5m Lidar)";
+                            } else {
+                                const roundedRes = Math.round(res);
+
+                                if (roundedRes === 1) {
+                                    qualityLabel = "USGS Q1 (1m Lidar)";
+                                } else if (roundedRes >= 2 && roundedRes <= 4) {
+                                    qualityLabel = "USGS Q2 (3m / 1/9 arc-sec)";
+                                } else if (roundedRes === 5) {
+                                    qualityLabel = `USGS (${res}m DEM)`;
+                                } else if (roundedRes >= 8 && roundedRes <= 12) {
+                                    qualityLabel = "USGS Q3 (10m / 1/3 arc-sec)";
+                                } else if (roundedRes >= 28 && roundedRes <= 33) {
+                                    qualityLabel = "USGS Q4 (30m / 1 arc-sec)";
+                                } else if (attributes.Resolution_X) {
+                                    qualityLabel = `USGS (${Math.round(parseFloat(attributes.Resolution_X))}m)`;
+                                } else {
+                                    qualityLabel = `USGS (~${roundedRes}m Dem})`;
+                                }
+
+                                return {
+                                    elevation: parseFloat(elevation) * 3.28084,
+                                    quality: qualityLabel,
+                                    isFallback: false
+                                };
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.warn("USGS EPQS offline or failed. Reverting to AWS terrain fallback...", error);
+                }
+
+                const awsElevMeters = map.queryTerrainElevation([lng,lat]);
+                if (awsElevMeters !== null) {
+                    return {
+                        elevation: awsElevMeters * 3.28084,
+                        quality: "AWS Fallback (~30m DEM)",
+                        isFallback: true
+                    };
+                }
+                return null;
+            }
+
+            async function fetchExactParcelId(lng, lat) {
+                const url = `https://services1.arcgis.com/99lidPhWCzftIe9K/arcgis/rest/services/UtahStatewideParcels/FeatureServer/0/query?f=json&geometry=${lng},${lat}&geometryType=esriGeometryPoint&inSR=4326&outSR=4326&spatialRel=esriSpatialRelIntersects&outFields=PARCEL_ID`;
+
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error("parcel API failed");
+
+                    const data = await response.json();
+                    if (data.features && data.features.length > 0) {
+                        return data.features[0].attributes.PARCEL_ID;
+                    }
+                } catch (error) {
+                    console.warn("Could not fetch parcel ID:", error);
+                }
+                return "N/A (no parcel found)";
+            }
+
+            map.on('click', async (e) => {
+
+                if (isTankLocked) return;
+
+                const coords = [e.lngLat.lng, e.lngLat.lat];
+
+                document.getElementById('elevation-display').innerText= 'Querying USGS Data...';
+                document.getElementById('elevation-display').style.color = '#e74c3c';
+
+                const tankData = await getUSGSElevation(coords[0], coords[1]);
+
+                if (tankData === null) {
+                    document.getElementById('elevation-display').innerText = 'Elevation data unavailable.';
+                    return;
+                }
+
+                window.currentTankElevFeet = tankData.elevation;
+                window.currentTankQuality = tankData.quality;
+
+                // fetch and store the parcel ID in the background
+                window.currentTankParcelId = "loading...";
+                fetchExactParcelId(coords[0], coords[1]).then(id => {
+                    window.currentTankParcelId = id;
+                });
+
+                // this is where the code does the heavy lifting to calculate the psi. Now, it will save the elevation and static head to send it to the cursor box.
+                if (tankMarker) {
+                    tankMarker.setLngLat(coords);
+                } else {
+                    tankMarker = new maplibregl.Marker({ color: '#00f7ff' }).setLngLat(coords).addTo(map);
+                }
+
+                isTankLocked = true;
+                document.getElementById('reset-tank-btn').style.display = 'inline-block';
+
+                calculatePressureGrid(coords, tankData.elevation, tankData.quality);
+
+            });
+
+            document.getElementById('tank-height').addEventListener('input', () => {
+                if (tankMarker && window.currentTankElevFeet) {
+                    const coords = [tankMarker.getLngLat().lng, tankMarker.getLngLat().lat];
+                    calculatePressureGrid(coords, window.currentTankElevFeet, window.currentTankQuality);
+                }
+            });
+
+
+            // --- UI CONTROL PANEL LOGIC ---
+
+            document.getElementById('reset-tank-btn').addEventListener('click', () => {
+                isTankLocked = false;
+
+                window.currentElevationData = null;
+                window.gridBounds = null;
+                window.currentTankParcelId = null;
+
+                if (tankMarker) {
+                    tankMarker.remove();
+                    tankMarker = null;
+                }
+
+                if (map.getSource('pressure-image-source')) {
+                    map.getSource('pressure-image-source').updateImage({
+                        url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=',
+                        coordinates: [ [-111, 40], [-110, 40], [-110, 39], [-111, 39] ]
+                    });
+                    currentCalculationId++;
+                }
+
+                document.getElementById('elevation-display').innerText = 'Click map to place water tank...';
+                document.getElementById('elevation-display').style.color = '#e74c3c';
+                document.getElementById('reset-tank-btn').style.display = 'none';
+
+            });
+
+            // Toggle the map controls on and off
+            document.getElementById('map-controls-header').addEventListener('click', () => {
+                const content = document.getElementById('map-controls-content');
+                const arrow = document.getElementById('map-controls-arrow');
+
+                // if it is currently hidden, show it and point arrow down
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    arrow.innerText = '▼';
+                } else {
+                    content.style.display = 'none';
+                    arrow.innerText = '▶';
+                }
+            });
+
+            document.getElementById('opacity-slider').addEventListener('input', function (e) {
+                const opacityPercent = e.target.value;
+
+                document.getElementById('opacity-value').innerText = opacityPercent + '%';
+                // convert the 0-100 number into a 0.0-1.0 decimal for MapLibre
+                const decimalOpacity = opacityPercent / 100;
+
+                if (map.getLayer('esri-world-imagery-layer')) {
+                    map.setPaintProperty('esri-world-imagery-layer', 'raster-opacity', decimalOpacity);
+                }
+            });
+
+            // 1. Toggle FEMA Fill Layer
+            document.getElementById('toggle-fema-fill').addEventListener('change', function (e) {
+                if (!map.getLayer('fema-wildlands-fill')) return;
+            // If the box is checked, set visibility to 'visible', else 'none'
+                const visibility = e.target.checked ? 'visible' : 'none';
+                map.setLayoutProperty('fema-wildlands-fill', 'visibility', visibility);
+            });
+
+            // 2. Toggle FEMA Ignition Border
+            document.getElementById('toggle-fema-border').addEventListener('change', function (e) {
+                if (!map.getLayer('fema-wildlands-border-fill')) return;
+                const visibility = e.target.checked ? 'visible' : 'none';
+                map.setLayoutProperty('fema-wildlands-border-fill', 'visibility', visibility);
+            });
+
+            // 3. Toggle Hydrostatic Pressure Grid
+            document.getElementById('toggle-pressure').addEventListener('change', function (e) {
+            // SAFETY CHECK: The pressure layer doesn't exist until the user clicks the map!
+            // If we try to hide a layer that doesn't exist yet, the app will crash.
+                if (map.getLayer('pressure-layer')) {
+                    const visibility = e.target.checked ? 'visible' : 'none';
+                    map.setLayoutProperty('pressure-layer', 'visibility', visibility);
+                } else if (!e.target.checked) {
+                    console.warn("Please generate a pressure grid first by clicking the map.");
+                }
+            });
+
+            // This is checkbox logic for the parcel map.
+            document.getElementById('parcel-map-of-utah').addEventListener('change', function (e) {
+                    const visibility = e.target.checked ? 'visible' : 'none';
+
+                    if (map.getLayer('parcel-map-of-utah')){
+                        map.setLayoutProperty('parcel-map-of-utah', 'visibility', visibility);
+                    }
+
+                    if (map.getLayer('parcel-fill')){
+                        map.setLayoutProperty('parcel-fill', 'visibility', visibility);
+                    }
+
+            });
+
+            // This should be the checkbox logic for the wui risk data map
+            document.getElementById('wui-risk-data').addEventListener('change', function (e) {
+                if (!map.getLayer('wui-outline') || !map.getLayer('wui-fill')) return;
+                const visibility = e.target.checked ? 'visible' : 'none';
+                map.setLayoutProperty('wui-outline', 'visibility', visibility);
+                map.setLayoutProperty('wui-fill', 'visibility', visibility);
+            });
+
+            // LOGIC for PDF Button
+            document.getElementById('pdf-btn').addEventListener('click', () => {
+                if (!isTankLocked || !tankMarker || !window.gridBounds) {
+                    alert("Please click the map to place a water tank before printing!");
+                    return;
+                }
+
+                // change button text so the user knows it's working
+                const printBtn = document.getElementById('pdf-btn');
+                printBtn.innerText = "Capturing Map...";
+                printBtn.style.backgroundColor = "#0629d6";
+
+                // gather tank data
+                const coords = tankMarker.getLngLat();
+                const structureHeight = parseFloat(document.getElementById('tank-height').value);
+                const baseElev = Math.round(window.currentTankElevFeet);
+                const totalElev = baseElev + structureHeight;
+
+                // gather psi thresholds
+                const lowLimit = document.getElementById('low-psi').value;
+                const dangerLimit = document.getElementById('danger-psi').value;
+
+                // grab previously stored parcel id
+                const parcelId = window.currentTankParcelId || "N/A";
+
+                if (map.getLayer('temp-tank-marker-layer')) map.removeLayer('temp-tank-marker-layer');
+                if (map.getSource('temp-tank-marker')) map.removeSource('temp-tank-marker');
+
+                printBtn.disabled = true;
+
+                map.addSource('temp-tank-marker', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: {
+                            type: 'Point',
+                            coordinates: [coords.lng, coords.lat]
+                        }
+                    }
+                });
+
+                map.addLayer({
+                    id: 'temp-tank-marker-layer',
+                    type: 'symbol',
+                    source: 'temp-tank-marker',
+                    layout: {
+                        'text-field': '🏳️', // 📍, 🏳️, 📌, 🚩
+                        'text-size': 50,
+                        'text-allow-overlap': true,
+                        'text-ignore-placement': true,
+                        'text-anchor': 'bottom-right'
+                    },
+                    paint: {
+                        'text-color': '#12f3f3',
+                        'text-halo-color': '#ffffff',
+                        'text-halo-width': 2
+                    }
+                });
+
+                // Wait for everything to render
+                map.once('idle', () => {
+                    // Take the picture while the graphics cards still has circle.
+                    const mapImageURL = map.getCanvas().toDataURL('image/png');
+
+                    // erase the temporary circle
+                    if (map.getLayer('temp-tank-marker-layer')) {
+                        map.removeLayer('temp-tank-marker-layer');
+                    }
+                    if (map.getSource('temp-tank-marker')) {
+                        map.removeSource('temp-tank-marker');
+                    }
+
+                    //build the html for the printable report
+                    const printHTML = `
+                        <!DOCTYPE html>
+                        <html>
+                            <head>
+                                <title>WUI Risk Report Provided by the BYU Sustainability Lab</title>
+                                <style>
+                                    body { font-family: Arial, sans-serif; padding: 30px; color: #333; max-width: 900px; margin: auto; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                                    h1 { border-bottom: 2px solid #2980b9; padding-bottom: 10px; color: #2c3e50; }
+                                    h2 {color: #2c3e50;}
+                                    p {border-bottom: 1px solid rgba(0,0,0,0.3); padding-bottom: 10px;}
+
+                                    /* data grid styles */
+                                    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 30px; background: #f8f9fa; padding: 20px; border-radius: 8px; border: 1px solid #ddd;}
+                                    .data-item strong {color: #2980b9; display: block; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
+                                    .data-item span { font-size: 16px; font-weight: bold; }
+
+                                    /* lengend styles */
+                                    .legend-box { background: #ffffff; padding: 15px 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; }
+                                    .legend-title { font-size: 14px; font-weight: bold; color: #2c3e50; margin: 0; padding-right: 20px; border-right: 2px solid #ddd; }
+                                    .legend-item { display: flex; align-items: center; font-size: 13px; font-weight: bold; }
+                                    .color-square {width: 14px; height: 14px; border-radius: 3px; margin-right: 8px; border: 1px solid rgba(0,0,0,0.2); }
+
+                                    .map-image {width: 100%; border: 2px solid #333; border-radius: 6px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);}
+                                </style>
+                            </head>
+                            <body>
+                                <h1>Hydrostatic WUI Risk Modeler</h1>
+
+                                <h2>Proposed Water Tank</h2>
+
+                                <div class="data-grid">
+                                    <div class="data-item"><strong>Coordinates (Lat, Lng):</strong><span>${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}</span></div>
+                                    <div class="data-item"><strong>Parcel ID:</strong><span>${parcelId}</span></div>
+                                    <div class="data-item"><strong>Ground Elevation:</strong><span>${baseElev} ft</span></div>
+                                    <div class="data-item"><strong>Structure Height:</strong><span>${structureHeight} ft</span></div>
+                                </div>
+
+                                <div class="legend-box">
+                                    <h3 class="legend-title">Pressure<br>Zones</h3>
+                                    <div class="legend-item">
+                                        <span class="color-square" style="background-color: rgba(255,0,0,0.6);"></span>
+                                        Low (0 - ${lowLimit} psi)
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="color-square" style="background-color: rgba(244,206,59,0.7);"></span>
+                                        Optimal (${lowLimit} - ${dangerLimit} psi)
+                                    </div>
+                                    <div class="legend-item">
+                                        <span class="color-square" style="background-color: rgba(194,111,246,0.6);"></span>
+                                        High (&gt; ${dangerLimit} psi)
+                                    </div>
+                                </div>
+
+                                <img class="map-image" src="${mapImageURL}" onload="setTimeout(() => window.print(), 250);" alt="Map Print" />
+
+                                <p><strong>Notes:</strong></p>
+                                <p></p>
+                                <p></p>
+                                <p></p>
+                                <p></p>
+                            </body>
+                        </html>
+                    `;
+
+                    //open a new tab and inject the HTML report
+                    const printWindow = window.open('', '_blank');
+                    if (!printWindow) {
+                        alert("Please allow popups for this site to generate the PDF.");
+                        printBtn.innerText = "Save to PDF";
+                        printBtn.style.backgroundColor = "#1767cf";
+                        return;
+                    }
+
+                    printWindow.document.open();
+                    printWindow.document.write(printHTML);
+                    printWindow.document.close();
+
+                    // reset the button
+                    printBtn.innerText = "Save Data";
+                    printBtn.style.backgroundColor = "#2980b9";
+                    printBtn.disabled = false;
+                });
+
+                //map.triggerRepaint();
+            });
+
+        // --- Interactive Tooltip aka, white box for cursor ---
+
+        // 1. Create a single, reusable popup object
+            const tooltip = new maplibregl.Popup({
+                closeButton: false, // Hides the little 'x' button
+                closeOnClick: false // Prevents the popup from disappearing if they click
+            });
+
+            let isTooltipEnabled = document.getElementById('toggle-cursor-box').checked;
+
+            document.getElementById('toggle-cursor-box').addEventListener('change', function (e) {
+                isTooltipEnabled = e.target.checked;
+                if (!isTooltipEnabled) {
+                    tooltip.remove();
+                    map.getCanvas().style.cursor = '';
+                }
+            });
+
+        // 2. What happens when the mouse moves OVER the pressure grid
+            map.on('mousemove', function (e) {
+
+                if (!isTooltipEnabled) {
+                    map.getCanvas().style.cursor = '';
+                    tooltip.remove();
+                    return;
+                }
+
+                // check if the mouse if touching any of the wui or fema layers
+                const riskLayers = ['fema-wildlands-fill', 'fema-wildlands-border-fill', 'wui-fill', 'wui-outline'].filter(id => map.getLayer(id));
+                const fireFeatures = riskLayers.length > 0 ? map.queryRenderedFeatures(e.point, { layers: riskLayers}) : [];
+                const inFireZone = fireFeatures.length > 0;
+
+                // check if the mouse is touching a parcel
+                const parcelLayers = ['parcel-fill'].filter(id => map.getLayer(id));
+                const parcelFeatures = parcelLayers.length > 0 ? map.queryRenderedFeatures(e.point, { parcelLayers}) : [];
+                const parcelCode = parcelFeatures.length > 0 ? parcelFeatures[0] : null;
+
+                let tooltipHTML = '<div style="font-size: 12px; line-height: 1.5; color: #333;">';
+                let hasContent = false;
+
+                if (window.currentElevationData && window.gridBounds) {
+                    const bounds = window.gridBounds;
+                    const lng = e.lngLat.lng;
+                    const lat = e.lngLat.lat;
+
+                    if (lng >= bounds.minLng && lng <= bounds.maxLng && lat >= bounds.minLat && lat <= bounds.maxLat) {
+
+                        const x = Math.floor(((lng - bounds.minLng) / (bounds.maxLng - bounds.minLng)) * bounds.imgWidth);
+                        const y = Math.floor(((bounds.maxLat - lat) / (bounds.maxLat - bounds.minLat)) * bounds.imgHeight);
+                        const index = (y * bounds.imgWidth) + x;
+
+                        const cellElevMeters = window.currentElevationData[index];
+
+                        if (cellElevMeters && cellElevMeters > -1000) {
+                            const cellElevFeet = cellElevMeters * 3.28084;
+
+                            if (cellElevFeet < bounds.totalWaterHeadFeet) {
+                                const drop = bounds.totalWaterHeadFeet - cellElevFeet;
+                                const lowLimit = parseFloat(document.getElementById('low-psi').value);
+                                const psi = drop * 0.433;
+
+                                tooltipHTML += `
+                                    <div style="font-size: 12px; line-height: 1.5; color: #333;">
+                                        <div><strong>Elevation:</strong> ${Math.round(cellElevFeet * 10) / 10} ft</div>
+                                        <div><strong>Static Drop:</strong> ${Math.round(drop)} ft</div>
+                                        <div style="color: #000000;"><strong>Pressure:</strong> ${Math.round(psi)} psi</div>
+                                    </div>
+                                `;
+                                hasContent = true;
+
+                                if (inFireZone) {
+                                    tooltipHTML += `
+                                        <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid #ccc;">
+                                            <strong>Fire Risk Zone:</strong> <span style="color: #e74c3c; font-weight: bold;">Yes</span>
+                                        </div>
+                                    `;
+
+                                    // if pressure is bad inside the fire zone, drop the warning block
+                                    if (psi < lowLimit) {
+                                        tooltipHTML += `
+                                            <div style="background-color: #ffcccc; color: #cc0000; padding: 4px 6px; border-radius: 4px; font-weight: bold; margin-top: 6px; text-align: center; font-size: 11px;">
+                                                ⚠ Low Pressure In WUI
+                                            </div>
+                                        `;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // append parcel ID if it exists
+                if (parcelCode && parcelCode.properties.PARCEL_ID) {
+                    const borderTop = hasContent ? 'border-top: 1px solid #ccc; margin-top: 6px; padding-top: 4px;': '';
+                    tooltipHTML += `
+                        <div style="${borderTop}">
+                            <em>Parcel ID</em>: ${parcelCode.properties.PARCEL_ID}
+                        </div>
+                    `;
+                    hasContent = true;
+                }
+
+                tooltipHTML += '</div>';
+
+                // render the box if there's data to show
+                if (hasContent) {
+                    map.getCanvas().style.cursor = 'crosshair';
+                    tooltip.setLngLat(e.lngLat).setHTML(tooltipHTML).addTo(map);
+                } else {
+                    map.getCanvas().style.cursor = '';
+                    tooltip.remove();
+                }
+
+            });
+
+            // 3. What happens when the mouse LEAVES the pressure grid
+            map.on('mouseout', function () {
+            // Change the cursor back to the default arrow
+                map.getCanvas().style.cursor = '';
+            // Delete the tooltip from the screen
+                tooltip.remove();
+            });
+
+            const scale = new maplibregl.ScaleControl({
+                maxWidth: 80,
+                unit: 'imperial'
+            })
+            map.addControl(scale, 'bottom-left');
+
+            class ZoomTrackerControl {
+                onAdd(map) {
+                    this.map = map;
+                    this.container = document.createElement('div');
+                    this.container.className = 'maplibregl-ctrl maplibregl-ctrl-group';
+
+                    this.container.style.padding = '5px 10px';
+                    this.container.style.fontSize = '12px';
+                    this.container.style.fontWeight = 'bold';
+                    this.container.style.fontFamily = 'Arial, sans-serif';
+                    this.container.style.color = '#333333';
+
+                    const updateZoomText = () => {
+                        const currentZoom = Math.round(this.map.getZoom() * 10) / 10;
+                        this.container.textContent = `User Zoom: ${currentZoom}`;
+                    };
+
+                    updateZoomText();
+
+                    this.map.on('zoom', updateZoomText);
+                    return this.container;
+                }
+
+                onRemove() {
+                    this.container.parentNode.removeChild(this.container);
+                    this.map = undefined;
+                }
+            }
+
+            map.addControl(new ZoomTrackerControl(), 'bottom-left');
+        </script>
+    </body>
+</html>
