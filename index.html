@@ -68,12 +68,48 @@
             border-radius: 4px;
         }
 
-        .panel-intro {
-            font-size: 28px;
-            color: #555;
-            margin-bottom: 15px;
-            max-width: 600px;
-            line-height: 1.5;
+        .layer-description {
+            visibility: hidden;
+            opacity: 0;
+            width: 200px;
+            background-color: #faf7e7;
+            color: #666666;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 10;
+
+            /* position the tooltip above the icon */
+            bottom: 150%;
+            left: 50%;
+            margin-left: -135px;
+
+            /* Smooth the fade-in effect */
+            transition: opacity 0.3s, visibility 0.3s;
+
+            /* text styling */
+            font-size: 12px; /* Keeps the text small and unobtrusive */
+            font-style: italic;
+            margin-top: 4px; /* A tiny gap between the label and the description */
+            line-height: 1.4; /* Makes multi-line descriptions easier to read */
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .layer-description:after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: #333333 transparent transparent transparent;
+        }
+
+        .text-bubble:hover .layer-description {
+            visibility: visible;
+            opacity: 1;
         }
 
         .action-btn {
@@ -90,12 +126,13 @@
             font-weight: bold;
             text-decoration: none;
             border-radius: 8px;
-            border: 2px solid transparent;
+            border: 2px solid #000000;
             transition: all 0.2s ease;
         }
 
         .action-btn:hover {
             background-color: #bc1515;
+            border: 2px solid #002e5d;
             transform: translate(-2px);
             box-shadow: 0 6px 12px rgb(221 221 221 / 0.4);
         }
@@ -189,27 +226,28 @@
 
         <h3 style="font-size: 23px">Hydrostatic WUI Risk Modeler</h3>
 
-        <p>This is a tool created to bridge the gap between the Municipalities and other groups like
-            Real Estate Developers and FireFighters. The strongest feature of this tool is that it calculates
-            a water pressure grid of the surrounding area around a picked point.<br>When using this tool you may
-            access the <strong>3D Mapping</strong> by using your (ctrl/command) key & dragging the mouse.
+        <div class="layer-description" style="font-style: italic;">
+            This calculates the available hydrostatic PSI. This is based on the topographic elevation drop.
+        </div>
+
+        <p style="font-style: italic">This is a tool aims to provide a quick and easy water analysis to cities, real-estate developers and firefighters.
+            It calculates the static head water pressure around a proposed water tank.
+            <br><br>Note: This is a 3D Map. Press (ctrl/command) key & drag the mouse to enter 3D mode.
         </p>
 
         <div class="column-container">
             <div class="column">
                 <a href="fire-ops.html" class="action-btn">🔥 FIRE OPERATIONS</a>
-                <p>This button focuses on letting firefighters place a temporary water tank (usually called a pumpkin)
-                    then see how the resulting water pressure can help fight the fire.
+                <p>Firefighters can now see how their temporary water tanks can best supply water pressure where and when they need it.<br>Pressure grid: 6 square miles Resolution: Medium, 15.84 ft
                 </p>
             </div>
             <div class="column">
                 <a href="developer.html" class="action-btn">🏠 URBAN PLANNER</a>
-                <p>This button focuses on helping city water engineers and developers come to an understanding for needed
-                 water tanks for new subdivisions.</p>
+                <p>This tool saves time and money when a new water tank is needed. Pressure grid: 1 square mile Resolution: High, 2.64 ft</p>
             </div>
             <div class="column">
                 <a href="" class="action-btn">💧 WATER MGMT</a>
-                <p>This is still under development. Come back later to use this feature.</p>
+                <p>Nothing here! If you desire to submit ideas for improvement, please send the ideas to benjaminjones2602@gmail.com<br>Thank you!</p>
             </div>
         </div>
 
