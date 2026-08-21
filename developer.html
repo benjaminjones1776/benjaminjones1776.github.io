@@ -228,7 +228,7 @@
             content: "";
             position: absolute;
             top: 100%;
-            left: 50%;
+            left: 62%;
             margin-left: -6px;
             border-width: 6px;
             border-style: solid;
@@ -355,29 +355,11 @@
                 </div>
 
                 <!-- check box 2 -->
-                <br><input type="checkbox" id="toggle-fema-fill" checked>
-                <label for="toggle-fema-fill" class="text-description" style="font-weight: bold;">FEMA WUI Ember Zones</label>
+                <br><input type="checkbox" id="toggle-fema-zones" checked>
+                <label for="toggle-fema-zones" class="text-description" style="font-weight: bold;">FEMA & DNR WUI Layers</label>
                 <div class="text-bubble">i
                     <div class="layer-description">
-                        Federal Emergency Management Agency (FEMA)<br>The Ember Zone is where the burning ashes of the wildfire can cause houses to burn.<br>It extends 1.48mi from the Ignition zone.
-                    </div>
-                </div>
-
-                <!-- check box 3 -->
-                <br><input type="checkbox" id="toggle-fema-border" checked>
-                <label for="toggle-fema-border" class="text-description" style="font-weight: bold;">FEMA Ignition Zone</label>
-                <div class="text-bubble">i
-                    <div class="layer-description">
-                        Federal Emergency Management Agency (FEMA)<br>This is the WUI 100ft boundary interface.
-                    </div>
-                </div>
-
-                <!-- check box 4 -->
-                <br><input type="checkbox" id="wui-risk-data" checked>
-                <label for="wui-risk-data">DNR WUI Zones</label>
-                <div class="text-bubble">i
-                    <div class="layer-description" style="font-style: italic;">
-                        The Department of Natural Resources (DNR)<br>This shows the current wildland urban interface (WUI).
+                        Federal Emergency Management Agency (FEMA) & Department of Natural Resources<br><br>Wildland Urban Interface (WUI)<br>Includes both the Ignition Zone (100ft red boundary) and the Ember Zone (extends 1.48mi from ignition).
                     </div>
                 </div>
 
@@ -1120,19 +1102,26 @@
                 }
             });
 
-            // 1. Toggle FEMA Fill Layer
-            document.getElementById('toggle-fema-fill').addEventListener('change', function (e) {
-                if (!map.getLayer('fema-wildlands-fill')) return;
-            // If the box is checked, set visibility to 'visible', else 'none'
-                const visibility = e.target.checked ? 'visible' : 'none';
-                map.setLayoutProperty('fema-wildlands-fill', 'visibility', visibility);
-            });
+            // 1. Toggle FEMA Zones Layer
+            document.getElementById('toggle-fema-zones').addEventListener('change', function (e) {
 
-            // 2. Toggle FEMA Ignition Border
-            document.getElementById('toggle-fema-border').addEventListener('change', function (e) {
-                if (!map.getLayer('fema-wildlands-border-fill')) return;
                 const visibility = e.target.checked ? 'visible' : 'none';
-                map.setLayoutProperty('fema-wildlands-border-fill', 'visibility', visibility);
+
+                if (map.getLayer('fema-wildlands-fill')) {
+                    map.setLayoutProperty('fema-wildlands-fill', 'visibility', visibility);
+                }
+
+                if (map.getLayer('fema-wildlands-border-fill')) {
+                    map.setLayoutProperty('fema-wildlands-border-fill', 'visibility', visibility);
+                }
+
+                if (map.getLayer('wui-outline')) {
+                    map.setLayoutProperty('wui-outline', 'visibility', visibility);
+                }
+
+                if (map.getLayer('wui-fill')) {
+                    map.setLayoutProperty('wui-fill', 'visibility', visibility);
+                }
             });
 
             // 3. Toggle Hydrostatic Pressure Grid
@@ -1147,27 +1136,6 @@
                 }
             });
 
-            // This is checkbox logic for the parcel map.
-            document.getElementById('parcel-map-of-utah').addEventListener('change', function (e) {
-                    const visibility = e.target.checked ? 'visible' : 'none';
-
-                    if (map.getLayer('parcel-map-of-utah')){
-                        map.setLayoutProperty('parcel-map-of-utah', 'visibility', visibility);
-                    }
-
-                    if (map.getLayer('parcel-fill')){
-                        map.setLayoutProperty('parcel-fill', 'visibility', visibility);
-                    }
-
-            });
-
-            // This should be the checkbox logic for the wui risk data map
-            document.getElementById('wui-risk-data').addEventListener('change', function (e) {
-                if (!map.getLayer('wui-outline') || !map.getLayer('wui-fill')) return;
-                const visibility = e.target.checked ? 'visible' : 'none';
-                map.setLayoutProperty('wui-outline', 'visibility', visibility);
-                map.setLayoutProperty('wui-fill', 'visibility', visibility);
-            });
 
             // LOGIC for PDF Button
             document.getElementById('pdf-btn').addEventListener('click', () => {

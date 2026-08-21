@@ -229,7 +229,7 @@
             content: "";
             position: absolute;
             top: 100%;
-            left: 50%;
+            left: 62%;
             margin-left: -6px;
             border-width: 6px;
             border-style: solid;
@@ -355,10 +355,10 @@
 
                     <!-- check box 2 -->
                     <br><input type="checkbox" id="toggle-fema-zones" checked>
-                    <label for="toggle-fema-zones" class="text-description" style="font-weight: bold;">FEMA WUI Layer</label>
+                    <label for="toggle-fema-zones" class="text-description" style="font-weight: bold;">FEMA & DNR WUI Layers</label>
                     <div class="text-bubble">i
                         <div class="layer-description">
-                            Federal Emergency Management Agency (FEMA)<br>&<br>Wildland Urban Interface (WUI)<br>Includes both the Ignition Zone (100ft red boundary) and the Ember Zone (extends 1.48mi from ignition).
+                            Federal Emergency Management Agency (FEMA) & Department of Natural Resources<br><br>Wildland Urban Interface (WUI)<br>Includes both the Ignition Zone (100ft red boundary) and the Ember Zone (extends 1.48mi from ignition).
                         </div>
                     </div>
 
@@ -368,15 +368,6 @@
                     <div class="text-bubble">i
                         <div class="layer-description">
                             Department of Natual Resources (DNR)<br>White = 0ft<br>Cream = 0-4ft<br>Burned Cream = 4-8ft<br>Orange = 8-11ft<br>Burned Orange = 11-25ft<br>Red = >25ft
-                        </div>
-                    </div>
-
-                    <!-- check box 4 -->
-                    <br><input type="checkbox" id="wui-risk-data" checked>
-                    <label for="wui-risk-data">DNR WUI Zones</label>
-                    <div class="text-bubble">i
-                        <div class="layer-description" style="font-style: italic;">
-                            The Department of Natural Resources (DNR)<br>This shows the current wildland urban interface (WUI).
                         </div>
                     </div>
 
@@ -474,6 +465,7 @@
                         'utah-parcel-map': {
                             type: 'geojson',
                             data: { type: 'FeatureCollection', features: []}
+
                         },
                         'dnr-flame-length': {
                             type: 'raster',
@@ -666,6 +658,18 @@
                     }
                 });
 
+                map.addLayer({
+                    id: 'flame-length',
+                    type: 'raster',
+                    source: 'dnr-flame-length',
+                    layout: {
+                        'visibility': 'none'
+                    },
+                    paint: {
+                        'raster-opacity': 0.7
+                    }
+                }, 'pressure-layer');
+
 
                 // the description of how the DNR WUI layer looks like
                 map.addLayer({
@@ -725,7 +729,7 @@
                         'line-width': 1,
                         'line-opacity': 0.9
                     }
-                });
+                }, 'street-names');
 
                 map.addLayer({
                     id: 'parcel-fill',
@@ -737,17 +741,7 @@
                     }
                 });
 
-                map.addLayer({
-                    id: 'flame-length',
-                    type: 'raster',
-                    source: 'dnr-flame-length',
-                    layout: {
-                        'visibility': 'none'
-                    },
-                    paint: {
-                        'raster-opacity': 0.3
-                    }
-                }, 'pressure-layer');
+
 
                 let parcelAbortController = null;
                 let throttleTimer = null;
@@ -1151,6 +1145,14 @@
                 if (map.getLayer('fema-wildlands-border-fill')) {
                     map.setLayoutProperty('fema-wildlands-border-fill', 'visibility', visibility);
                 }
+
+                if (map.getLayer('wui-outline')) {
+                    map.setLayoutProperty('wui-outline', 'visibility', visibility);
+                }
+
+                if (map.getLayer('wui-fill')) {
+                    map.setLayoutProperty('wui-fill', 'visibility', visibility);
+                }
             });
 
             document.getElementById('toggle-flame-length').addEventListener('change', function (e) {
@@ -1186,14 +1188,6 @@
                         map.setLayoutProperty('parcel-fill', 'visibility', visibility);
                     }
 
-            });
-
-            // This should be the checkbox logic for the wui risk data map
-            document.getElementById('wui-risk-data').addEventListener('change', function (e) {
-                if (!map.getLayer('wui-outline') || !map.getLayer('wui-fill')) return;
-                const visibility = e.target.checked ? 'visible' : 'none';
-                map.setLayoutProperty('wui-outline', 'visibility', visibility);
-                map.setLayoutProperty('wui-fill', 'visibility', visibility);
             });
 
             // LOGIC for PDF Button
