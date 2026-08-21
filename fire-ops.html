@@ -126,7 +126,7 @@
 
         #disclaimer-box h3 {
             margin: 0 0 0px 0;
-            font-size: 16px;
+            font-size: clamp(9px, 2vw, 16px);
             letter-spacing: 1px;
             line-height: 1.5;
             text-transform: uppercase;
@@ -134,7 +134,7 @@
 
         #disclaimer-box p {
             margin: 0;
-            font-size: 13px;
+            font-size: clamp(7px, 1.5vw, 13px);
             line-height: 1.5;
             color: rgba(255, 255, 255, 0.9);
         }
@@ -265,14 +265,6 @@
 
             #disclaimer-box {
                 bottom: 25px;
-            }
-
-            #disclaimer-box h3 {
-                font-size: 13px;
-            }
-
-            #disclaimer-box p {
-                font-size: 11px;
             }
         }
 

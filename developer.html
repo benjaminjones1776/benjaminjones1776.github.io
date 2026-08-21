@@ -103,7 +103,7 @@
         }
 
         #disclaimer-box {
-            position: absolute;
+            position: fixed;
             bottom: 10px;
             left: 50%;
             transform: translateX(-50%);
@@ -118,13 +118,14 @@
             font-family: system-ui, -apple-system, sans-serif; /*letter-spacing: 1px;*/
             color: #ffffff;
             text-align: center;
-            width: 90%;
+            width: 50%;
             max-width: 350px;
+            min-width: 250px;
         }
 
         #disclaimer-box h3 {
             margin: 0 0 0px 0;
-            font-size: 16px;
+            font-size: clamp(9px, 2vw, 16px);
             letter-spacing: 1px;
             line-height: 1.5;
             text-transform: uppercase;
@@ -132,7 +133,7 @@
 
         #disclaimer-box p {
             margin: 0;
-            font-size: 13px;
+            font-size: clamp(7px, 1.5vw, 13px);
             line-height: 1.5;
             color: rgba(255, 255, 255, 0.9);
         }
@@ -263,14 +264,6 @@
 
              #disclaimer-box {
                 bottom: 25px;
-            }
-
-            #disclaimer-box h3 {
-                font-size: 13px;
-            }
-
-            #disclaimer-box p {
-                font-size: 11px;
             }
         }
 
@@ -1372,7 +1365,7 @@
                     return;
                 }
 
-                // check if the mouse if touching any of the wui or fema layers
+                // check if the mouse is touching any of the wui or fema layers
                 const riskLayers = ['fema-wildlands-fill', 'fema-wildlands-border-fill', 'wui-fill', 'wui-outline'].filter(id => map.getLayer(id));
                 const fireFeatures = riskLayers.length > 0 ? map.queryRenderedFeatures(e.point, { layers: riskLayers}) : [];
                 const inFireZone = fireFeatures.length > 0;
