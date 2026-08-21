@@ -20,8 +20,19 @@
         }
         #map { position: absolute; top: 0; bottom: 0; width: 100%; }
 
-        #dev-version-btn {
+        #top-button-container {
             position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            z-index: 9999;
+            pointer-events: none;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        #dev-version-btn, #pdf-btn {
             top: 15px;
             left: 15px;
             z-index: 9999;
@@ -34,15 +45,25 @@
 
             background-color: #002e5d;
             color: #ffffff;
+
             padding: 10px 16px;
-            font-family: "Copperplate Gothic Bold";
-            font-size: 14px;
-            font-weight: bold;
-            text-decoration: none;
             border-radius: 6px;
             border: 2px solid #ffffff;
             box-shadow: 0 4px 6px rgba(0,0,0,0.2);
             transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+
+        #dev-version-btn {
+            font-family: "Copperplate Gothic Bold";
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        #pdf-btn {
+            font-family: "Times New Roman", serif;
+            font-size: 17px;
+            font-weight: bold;
         }
 
         #dev-version-btn:hover {
@@ -52,30 +73,6 @@
             box-shadow: 0 6px 12px rgb(221 221 221 / 0.4);
         }
 
-        #pdf-btn {
-            position: absolute; top: 15px; left: 209px;
-            z-index: 9999;
-            pointer-events: auto;
-
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-
-            background-color: #002e5d;
-            color: white;
-            border: 2px solid #ffffff;
-            border-radius: 6px;
-            padding: 8px 16px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-
-            font-size: 17px;
-            font-family: "Times New Roman";
-            font-weight: bold;
-            cursor: pointer;
-
-            transition: background-color 0.2s ease, transform 0.1s ease;
-        }
 
         #pdf-btn:hover {
             background-color: #ffffff;
@@ -88,9 +85,12 @@
         #ui-panel {
             position: absolute; top: 70px; left: 15px;
             z-index: 500;
-            max-height: 90vh;
+            max-height: calc(100vh - 90px);
+            width: 305px;
+            max-width: calc(100vw - 30px);
             overflow-y: auto;
-            background: rgba(255, 255, 255, 0.95); padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px;
             border-radius: 8px; font-family: Arial, sans-serif;
             box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             color: #333;
@@ -248,138 +248,157 @@
             cursor: pointer;
         }
 
+        @media (max-width: 600px) {
+            #ui-panel {
+                top: 65px;
+                max-height: 45vh;
+            }
+
+            #disclaimer-box {
+                font-size: 11px;
+                padding: 8px 15px;
+                bottom: 25px;
+            }
+        }
+
 
     </style>
 </head>
     <body>
+        <div id="top-button-container">
+            <a href="developer.html" id="dev-version-btn">
+                🏠 URBAN PLANNER
+            </a>
 
-        <a href="developer.html" id="dev-version-btn">
-            🏠 URBAN PLANNER
-        </a>
-
-        <!-- start of PDF button -->
-        <button id="pdf-btn">
-        🖨️ Save Data
-        </button>
+            <!-- start of PDF button -->
+            <button id="pdf-btn">
+            🖨️ Save Data
+            </button>
+        </div>
 
         <div id="ui-panel">
-            <h3 class="text-title" style="margin-top: 0;">Firefighter Hydrostatic Modeler</h3>
-
-            <p class="text-description" style="margin-bottom: 15px;">
-                Choose water-level height, then click to place water tank.
-            </p>
-
-            <label class="text-title">Water Level in Tank (ft):</label>
-            <input type="number" id="tank-height" value="20" style="width: 40px; margin-bottom: 4px;">
-
-            <!--This shows the elevation of the user click. Tank elevation-->
-            <div class="tank-elevation-description" style="margin-top: 8px;">
-                <strong class="text-description">Tank Location Elevation:</strong>
-                <span id="elevation-display" class="text-description" style="color: #e74c3c; font-weight: bold;">Click to place water tank...</span>
-                <br>
-                <button id="reset-tank-btn" style="display: none; background-color: #3b7326; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; margin-top: 8px;">Reset Tank Location</button>
-            </div>
-            <!-- End of section -->
-
-            <!-- Here is the part for the user interface box. Warning, and Danger Threshold PSI user input boxes -->
-            <div style="margin-top: 8px;">
-                <label class="legend-item" for="low-psi">Bottom Threshold (PSI):</label>
-                <input type="number" id="low-psi" value="30" style="width: 40px; margin-bottom: 10px;" step="5">
-            </div>
-
-            <div class="input-group">
-                <label class="legend-item" for="danger-psi">Top Threshold (PSI):</label>
-                <input type="number" id="danger-psi" value="80" style="width: 40px; margin-bottom: 10px;" step="5">
-            </div>
-            <!-- End of section -->
-
-            <!-- This block creates the color filters for the pressure grid-->
-            <div class="legend-item">
-                <span class="legend-box" style="background-color: #e74c3c;"></span>
-                Low Pressure (< <span id="legend-low-1">30</span> psi)
-            </div>
-            <div class="legend-item">
-                <span class="legend-box" style="background-color: #f4ce3b;"></span>
-                Optimal Pressure (<span id="legend-low-2">30</span> - <span id="legend-danger-1">80</span> psi)
-            </div>
-
-            <div class="legend-item">
-                <span class="legend-box" style="background-color: #C26FF4;"></span>
-                High Pressure (&gt; <span id="legend-danger-2">80</span> psi)
-            </div>
-            <!-- End of pressure grid color filters-->
-
-            <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
-
-            <h3 id="map-controls-header" class="text-title" style="cursor: pointer; margin-top: 10px; margin-bottom: 10px; user-select: none;">
-                <span id="map-controls-arrow" style="display: inline-block; width: 15px;">▶</span>Map Controls
+            <h3 id="ui-panel-header" class="text-title" style="cursor: pointer; margin-top: 0; user-select: none; display: flex; align-items: center; width: 100%;">
+                <span style="flex-grow: 1;">The Urban Planner Interfacer</span>
+                <span id="ui-panel-arrow" style="font-size: 14px; padding-left: 10px;">▼</span>
             </h3>
 
-            <!-- This is the block for the checkboxes to turn the layers on and off -->
-            <div id="map-controls-content" class="layer-control" style="display: none;">
+            <div id="ui-panel-content">
 
-                <div style="margin-bottom: 15px; margin-top: 5px;">
-                    <label for="opacity-slider" class="text-description" style="font-weight: bold;">
-                        Satellite Image Opacity: <span id="opacity-value" style="color: #2980b9;">100%</span>
-                    </label>
-                    <input type="range" id="opacity-slider" min="0" max="100" value="100" style="width: 100%; margin-top: 8px; cursor: pointer;">
+                <p class="text-description" style="margin-bottom: 15px;">
+                    Choose water-level height, then click to place water tank.
+                </p>
+
+                <label class="text-title">Water Level in Tank (ft):</label>
+                <input type="number" id="tank-height" value="20" style="width: 40px; margin-bottom: 4px;">
+
+                <!--This shows the elevation of the user click. Tank elevation-->
+                <div class="tank-elevation-description" style="margin-top: 8px;">
+                    <strong class="text-description">Tank Location Elevation:</strong>
+                    <span id="elevation-display" class="text-description" style="color: #e74c3c; font-weight: bold;">Click to place water tank...</span>
+                    <br>
+                    <button id="reset-tank-btn" style="display: none; background-color: #3b7326; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px; cursor: pointer; margin-top: 8px;">Reset Tank Location</button>
+                </div>
+                <!-- End of section -->
+
+                <!-- Here is the part for the user interface box. Warning, and Danger Threshold PSI user input boxes -->
+                <div style="margin-top: 8px;">
+                    <label class="legend-item" for="low-psi">Bottom Threshold (PSI):</label>
+                    <input type="number" id="low-psi" value="30" style="width: 40px; margin-bottom: 10px;" step="5">
                 </div>
 
-                <!-- check box 1 -->
-                <input type="checkbox" id="toggle-pressure" checked>
-                <label for="toggle-pressure">Water Pressure Grid</label>
-                <div class="text-bubble">i
-                    <div class="layer-description" style="font-style: italic;">
-                        This calculates the available hydrostatic PSI. This is based on the topographic elevation drop.
+                <div class="input-group">
+                    <label class="legend-item" for="danger-psi">Top Threshold (PSI):</label>
+                    <input type="number" id="danger-psi" value="80" style="width: 40px; margin-bottom: 10px;" step="5">
+                </div>
+                <!-- End of section -->
+
+                <!-- This block creates the color filters for the pressure grid-->
+                <div class="legend-item">
+                    <span class="legend-box" style="background-color: #e74c3c;"></span>
+                    Low Pressure (< <span id="legend-low-1">30</span> psi)
+                </div>
+                <div class="legend-item">
+                    <span class="legend-box" style="background-color: #f4ce3b;"></span>
+                    Optimal Pressure (<span id="legend-low-2">30</span> - <span id="legend-danger-1">80</span> psi)
+                </div>
+
+                <div class="legend-item">
+                    <span class="legend-box" style="background-color: #C26FF4;"></span>
+                    High Pressure (&gt; <span id="legend-danger-2">80</span> psi)
+                </div>
+                <!-- End of pressure grid color filters-->
+
+                <hr style="border: 0; border-top: 1px solid #ccc; margin: 15px 0;">
+
+                <h3 id="map-controls-header" class="text-title" style="cursor: pointer; margin-top: 10px; margin-bottom: 10px; user-select: none;">
+                    <span id="map-controls-arrow" style="display: inline-block; width: 15px;">▶</span>Map Controls
+                </h3>
+
+                <!-- This is the block for the checkboxes to turn the layers on and off -->
+                <div id="map-controls-content" class="layer-control" style="display: none;">
+
+                    <div style="margin-bottom: 15px; margin-top: 5px;">
+                        <label for="opacity-slider" class="text-description" style="font-weight: bold;">
+                            Satellite Image Opacity: <span id="opacity-value" style="color: #2980b9;">100%</span>
+                        </label>
+                        <input type="range" id="opacity-slider" min="0" max="100" value="100" style="width: 100%; margin-top: 8px; cursor: pointer;">
+                    </div>
+
+                    <!-- check box 1 -->
+                    <input type="checkbox" id="toggle-pressure" checked>
+                    <label for="toggle-pressure">Water Pressure Grid</label>
+                    <div class="text-bubble">i
+                        <div class="layer-description" style="font-style: italic;">
+                            This calculates the available hydrostatic PSI. This is based on the topographic elevation drop.
+                        </div>
+                    </div>
+
+                    <!-- check box 2 -->
+                    <br><input type="checkbox" id="toggle-fema-zones" checked>
+                    <label for="toggle-fema-zones" class="text-description" style="font-weight: bold;">FEMA WUI Layer</label>
+                    <div class="text-bubble">i
+                        <div class="layer-description">
+                            Federal Emergency Management Agency (FEMA)<br>&<br>Wildland Urban Interface (WUI)<br>Includes both the Ignition Zone (100ft red boundary) and the Ember Zone (extends 1.48mi from ignition).
+                        </div>
+                    </div>
+
+                    <!-- check box 3 -->
+                    <br><input type="checkbox" id="toggle-flame-length">
+                    <label for="toggle-flame-length" class="text-description" style="font-weight: bold;">DNR Flame Length</label>
+                    <div class="text-bubble">i
+                        <div class="layer-description">
+                            Department of Natual Resources (DNR)<br>White = 0ft<br>Cream = 0-4ft<br>Burned Cream = 4-8ft<br>Orange = 8-11ft<br>Burned Orange = 11-25ft<br>Red = >25ft
+                        </div>
+                    </div>
+
+                    <!-- check box 4 -->
+                    <br><input type="checkbox" id="wui-risk-data" checked>
+                    <label for="wui-risk-data">DNR WUI Zones</label>
+                    <div class="text-bubble">i
+                        <div class="layer-description" style="font-style: italic;">
+                            The Department of Natural Resources (DNR)<br>This shows the current wildland urban interface (WUI).
+                        </div>
+                    </div>
+
+                    <!-- check box 5 -->
+                    <br><input type="checkbox" id="parcel-map-of-utah" checked>
+                    <label for="parcel-map-of-utah">URGC Utah Parcel Map</label>
+                    <div class="text-bubble">i
+                        <div class="layer-description" style="font-style: italic;">
+                            Utah Geospatial Resource Center (URGC)<br>This shows the current parcel map for Utah when the user is at a ScaleControl >= 15.
+                        </div>
+                    </div>
+
+                    <br><input type="checkbox" id="toggle-cursor-box" checked>
+                    <label for="toggle-cursor-box">Mouse Info Box</label>
+                    <div class="text-bubble">i
+                        <div class="layer-description" style="font-style: italic;">
+                            This will turn on and off the white info box when you hover over the pressure grid.
+                        </div>
                     </div>
                 </div>
-
-                <!-- check box 2 -->
-                <br><input type="checkbox" id="toggle-fema-zones" checked>
-                <label for="toggle-fema-zones" class="text-description" style="font-weight: bold;">FEMA WUI Layer</label>
-                <div class="text-bubble">i
-                    <div class="layer-description">
-                        Federal Emergency Management Agency (FEMA)<br>&<br>Wildland Urban Interface (WUI)<br>Includes both the Ignition Zone (100ft red boundary) and the Ember Zone (extends 1.48mi from ignition).
-                    </div>
-                </div>
-
-                <!-- check box 3 -->
-                <br><input type="checkbox" id="toggle-flame-length">
-                <label for="toggle-flame-length" class="text-description" style="font-weight: bold;">DNR Flame Length</label>
-                <div class="text-bubble">i
-                    <div class="layer-description">
-                        Department of Natual Resources (DNR)<br>White = 0ft<br>Cream = 0-4ft<br>Burned Cream = 4-8ft<br>Orange = 8-11ft<br>Burned Orange = 11-25ft<br>Red = >25ft
-                    </div>
-                </div>
-
-                <!-- check box 4 -->
-                <br><input type="checkbox" id="wui-risk-data" checked>
-                <label for="wui-risk-data">DNR WUI Zones</label>
-                <div class="text-bubble">i
-                    <div class="layer-description" style="font-style: italic;">
-                        The Department of Natural Resources (DNR)<br>This shows the current wildland urban interface (WUI).
-                    </div>
-                </div>
-
-                <!-- check box 5 -->
-                <br><input type="checkbox" id="parcel-map-of-utah" checked>
-                <label for="parcel-map-of-utah">URGC Utah Parcel Map</label>
-                <div class="text-bubble">i
-                    <div class="layer-description" style="font-style: italic;">
-                        Utah Geospatial Resource Center (URGC)<br>This shows the current parcel map for Utah when the user is at a ScaleControl >= 15.
-                    </div>
-                </div>
-
-                <br><input type="checkbox" id="toggle-cursor-box" checked>
-                <label for="toggle-cursor-box">Mouse Info Box</label>
-                <div class="text-bubble">i
-                    <div class="layer-description" style="font-style: italic;">
-                        This will turn on and off the white info box when you hover over the pressure grid.
-                    </div>
-                </div>
+                <!-- end of checkbox block -->
             </div>
-            <!-- end of checkbox block -->
-
         </div>
 
         <div id="disclaimer-box">
@@ -1098,6 +1117,25 @@
                 } else {
                     content.style.display = 'none';
                     arrow.innerText = '▶';
+                }
+            });
+
+            // Toggle the main UI panel on and off
+            document.getElementById('ui-panel-header').addEventListener('click', () => {
+                const content = document.getElementById('ui-panel-content');
+                const arrow = document.getElementById('ui-panel-arrow');
+
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    arrow.innerText = '▼';
+                } else {
+                    content.style.display = 'none';
+                    arrow.innerText = '▶';
+                }
+
+                if (window.innerWidth <= 600) {
+                    document.getElementById('ui-panel-content').style.display = 'none';
+                    document.getElementById('ui-panel-arrow').innerText = '▶';
                 }
             });
 
