@@ -5,11 +5,13 @@
     <title>The FireFighter Hydrostatic Risk Modeler</title>
     <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
 
+    <!-- These 4 items are the libraries that are needed to run this code. -->
     <link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/geotiff"></script>
 
+    <!--This section provides all classes with a description -->
     <style>
         body {
             margin: 0;
@@ -198,10 +200,10 @@
         }
         /* This keeps the code for the tank elevation the same. */
         .tank-elevation-description {
-            font-size: 13px; /* Keeps the text small and unobtrusive */
+            font-size: 13px;
             color: #666666;
-            margin-top: 4px; /* A tiny gap between the label and the description */
-            margin-left: 24px; /* IMPORTANT: This perfectly indents the text so it sits under the label, not under the checkbox square! */
+            margin-top: 4px;
+            margin-left: 24px;
             line-height: 1.5;
         }
 
@@ -227,11 +229,11 @@
             transition: opacity 0.3s, visibility 0.3s;
 
             /* text styling */
-            font-size: 12px; /* Keeps the text small and unobtrusive */
+            font-size: 12px;
             font-style: italic;
-            margin-top: 4px; /* A tiny gap between the label and the description */
-            line-height: 1.4; /* Makes multi-line descriptions easier to read */
-            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            margin-top: 4px;
+            line-height: 1.4;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
         }
 
         .layer-description:after {
@@ -250,7 +252,7 @@
             opacity: 1;
         }
 
-        /* Optional: Make the label text bold so it stands out from the description */
+        /* Makes the label text bold so it stands out from the description */
         .layer-control label {
             font-weight: bold;
             font-size: 14px;
@@ -285,7 +287,7 @@
 
         <div id="ui-panel">
             <h3 id="ui-panel-header" class="text-title" style="cursor: pointer; margin-top: 0; user-select: none; display: flex; align-items: center; width: 100%;">
-                <span style="flex-grow: 1;">The Urban Planner Interfacer</span>
+                <span style="flex-grow: 1;">The Fire-Fighter Interface</span>
                 <span id="ui-panel-arrow" style="font-size: 14px; padding-left: 10px;">▼</span>
             </h3>
 
@@ -370,7 +372,7 @@
                         </div>
                     </div>
 
-                    <!-- check box 3 -->
+
                     <br><input type="checkbox" id="toggle-flame-length">
                     <label for="toggle-flame-length" class="text-description" style="font-weight: bold;">DNR Flame Length</label>
                     <div class="text-bubble">i
@@ -379,7 +381,7 @@
                         </div>
                     </div>
 
-                    <!-- check box 5 -->
+
                     <br><input type="checkbox" id="parcel-map-of-utah" checked>
                     <label for="parcel-map-of-utah">URGC Utah Parcel Map</label>
                     <div class="text-bubble">i
@@ -706,11 +708,11 @@
                     id: 'fema-wildlands-fill',
                     type: 'fill',
                     source: "fema-wildlands-data",
-                    'source-layer': 'Ember zone', // source-layer name = wildlands_20250616
+                    'source-layer': 'Ember zone',
                     paint: {
-                        'fill-color': '#000000', // Base red color
-                        'fill-opacity': 0.10, // Semi-transparent so the terrain shows through
-                        'fill-outline-color': '#000000' // Darker red for the borders
+                        'fill-color': '#000000',
+                        'fill-opacity': 0.10,
+                        'fill-outline-color': '#000000'
                     }
                 }, 'pressure-layer'); // <--- This forces FEMA to sit underneath pressure-layer
 
