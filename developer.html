@@ -146,6 +146,13 @@
             margin: 0;
         }
 
+        .text-ui-panel-name {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
         .text-description  {
             font-size: 13px;
             color: #444444;
@@ -285,7 +292,7 @@
 
     <div id="ui-panel">
 
-        <h3 id="ui-panel-header" class="text-title" style="cursor: pointer; margin-top: 0; user-select: none; display: flex; align-items: center; width: 100%;">
+        <h3 id="ui-panel-header" class="text-ui-panel-name" style="cursor: pointer; margin-top: 0; user-select: none; display: flex; align-items: center; width: 100%;">
             <span style="flex-grow: 1;">The Urban Planner Interface</span>
             <span id="ui-panel-arrow" style="font-size: 14px; padding-left: 10px;">▼</span>
         </h3>
@@ -1352,7 +1359,7 @@
                 isTooltipEnabled = e.target.checked;
                 if (!isTooltipEnabled) {
                     tooltip.remove();
-                    map.getCanvas().style.cursor = '';
+                    map.getCanvas().style.cursor = 'default';
                 }
             });
 
@@ -1360,7 +1367,7 @@
             map.on('mousemove', function (e) {
 
                 if (!isTooltipEnabled) {
-                    map.getCanvas().style.cursor = '';
+                    map.getCanvas().style.cursor = 'default';
                     tooltip.remove();
                     return;
                 }
@@ -1447,7 +1454,7 @@
                     map.getCanvas().style.cursor = 'crosshair';
                     tooltip.setLngLat(e.lngLat).setHTML(tooltipHTML).addTo(map);
                 } else {
-                    map.getCanvas().style.cursor = '';
+                    map.getCanvas().style.cursor = 'default';
                     tooltip.remove();
                 }
 
@@ -1456,7 +1463,7 @@
             // 3. What happens when the mouse LEAVES the pressure grid
             map.on('mouseout', function () {
             // Change the cursor back to the default arrow
-                map.getCanvas().style.cursor = '';
+                map.getCanvas().style.cursor = 'default';
             // Delete the tooltip from the screen
                 tooltip.remove();
             });

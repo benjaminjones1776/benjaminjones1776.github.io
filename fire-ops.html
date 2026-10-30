@@ -149,6 +149,13 @@
             margin: 0;
         }
 
+        .text-ui-panel-name {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            margin: 0;
+        }
+
         .text-description  {
             font-size: 13px;
             color: #444444;
@@ -175,12 +182,6 @@
         }
 
         .legend-item { margin-top: 8px; font-size: 13px; font-weight: bold; }
-
-        /* Forces the default arrow instead of the panning hand */
-        .maplibregl-canvas-container.maplibregl-interactive,
-        .maplibregl-canvas-container.maplibregl-interactive:active {
-            cursor: default !important;
-        }
 
         .legend-box {
             display: inline-block;
@@ -292,7 +293,7 @@
         </div>
 
         <div id="ui-panel">
-            <h3 id="ui-panel-header" class="text-title" style="cursor: pointer; margin-top: 0; user-select: none; display: flex; align-items: center; width: 100%;">
+            <h3 id="ui-panel-header" class="text-ui-panel-name" style="cursor: pointer; margin-top: 0; user-select: none; display: flex; align-items: center; width: 100%;">
                 <span style="flex-grow: 1;">The Fire-Fighter Interface</span>
                 <span id="ui-panel-arrow" style="font-size: 14px; padding-left: 10px;">▼</span>
             </h3>
