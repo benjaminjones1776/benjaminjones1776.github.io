@@ -176,6 +176,12 @@
 
         .legend-item { margin-top: 8px; font-size: 13px; font-weight: bold; }
 
+        /* Forces the default arrow instead of the panning hand */
+        .maplibregl-canvas-container.maplibregl-interactive,
+        .maplibregl-canvas-container.maplibregl-interactive:active {
+            cursor: default !important;
+        }
+
         .legend-box {
             display: inline-block;
             width: 12px;
@@ -1406,7 +1412,7 @@
                 isTooltipEnabled = e.target.checked;
                 if (!isTooltipEnabled) {
                     tooltip.remove();
-                    map.getCanvas().style.cursor = '';
+                    map.getCanvas().style.cursor = 'default';
                 }
             });
 
@@ -1414,7 +1420,7 @@
             map.on('mousemove', function (e) {
 
                 if (!isTooltipEnabled) {
-                    map.getCanvas().style.cursor = '';
+                    map.getCanvas().style.cursor = 'default';
                     tooltip.remove();
                     return;
                 }
@@ -1501,7 +1507,7 @@
                     map.getCanvas().style.cursor = 'crosshair';
                     tooltip.setLngLat(e.lngLat).setHTML(tooltipHTML).addTo(map);
                 } else {
-                    map.getCanvas().style.cursor = '';
+                    map.getCanvas().style.cursor = 'default';
                     tooltip.remove();
                 }
 
@@ -1510,7 +1516,7 @@
             // 3. What happens when the mouse LEAVES the pressure grid
             map.on('mouseout', function () {
             // Change the cursor back to the default arrow
-                map.getCanvas().style.cursor = '';
+                map.getCanvas().style.cursor = 'default';
             // Delete the tooltip from the screen
                 tooltip.remove();
             });
